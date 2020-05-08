@@ -8,6 +8,7 @@
 
 #import <UIKit/UIKit.h>
 //#import <AgoraRtcKit/AgoraRtcEngineKit.h>
+#import <OWT/OWT.h>
 #import "Encryption.h"
 #import "Settings.h"
 
@@ -19,4 +20,12 @@
 
 @interface RoomViewController : UIViewController
 @property (weak, nonatomic) id<RoomVCDataSource> dataSource;
+
+@property (strong, nonatomic) OWTConferenceClient *conferenceClient;
+@property (strong, nonatomic) OWTRemoteMixedStream* mixedStream;
+@property (strong, nonatomic) OWTRemoteStream* screenStream;
+@property (strong, nonatomic) NSString* conferenceId;
+
+@property (strong, nonatomic) NSMutableArray<OWTRemoteStream*>* remoteStreams;
+
 @end

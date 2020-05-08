@@ -95,7 +95,6 @@
   [manager.requestSerializer setValue:@"*/*" forHTTPHeaderField:@"Accept"];
   [manager.requestSerializer setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
   manager.responseSerializer = [AFJSONResponseSerializer serializer];
-  NSLog(@"==========getRoomsFormServer=======:%@", basicServer);
 //  manager.responseSerializer.acceptableContentTypes = [NSSet setWithObjects:@"application/json",@"text/json", @"text/plain", @"text/html", nil];
   manager.securityPolicy.allowInvalidCertificates=YES;
   manager.securityPolicy.validatesDomainName=NO;

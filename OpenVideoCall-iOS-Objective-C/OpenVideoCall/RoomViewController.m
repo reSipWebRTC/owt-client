@@ -6,6 +6,8 @@
 //  Copyright © 2016年 Agora. All rights reserved.
 //
 
+#import <AFNetworking/AFNetworking.h>
+#import <WebRTC/WebRTC.h>
 //#import <AgoraRtcCryptoLoader/AgoraRtcCryptoLoader.h>
 #import "RoomOptionsViewController.h"
 #import "MessageViewController.h"
@@ -16,7 +18,7 @@
 #import "FileCenter.h"
 #import "KeyCenter.h"
 
-@interface RoomViewController () <RoomOptionsVCDelegate, RoomOptionsVCDataSource>
+@interface RoomViewController () <RoomOptionsVCDelegate, RoomOptionsVCDataSource, OWTConferenceClientDelegate, OWTRemoteMixedStreamDelegate, OWTRemoteStreamDelegate, OWTConferenceParticipantDelegate>
 @property (weak, nonatomic) IBOutlet UIView *containerView;
 @property (weak, nonatomic) IBOutlet UIView *messageTableContainerView;
 
@@ -31,6 +33,7 @@
 
 //@property (weak, nonatomic) AgoraRtcEngineKit *agoraKit;
 //@property (strong, nonatomic) AgoraRtcCryptoLoader *agoraLoader;
+//-(void)getTokenFromBasicSample:(NSString *)basicServer onSuccess:(void (^)(NSString *))onSuccess onFailure:(void (^)())onFailure;
 
 @property (assign, nonatomic) BOOL isSwitchCamera;
 @property (assign, nonatomic) BOOL isAudioMixing;
@@ -52,6 +55,7 @@
 @end
 
 @implementation RoomViewController
+
 #pragma mark - Setter, Getter
 - (void)setIsSwitchCamera:(BOOL)isSwitchCamera {
     //[self.agoraKit switchCamera];
@@ -249,7 +253,7 @@
     }
 }
 
-#pragma mark - AgoraRtcEngineKit
+#pragma mark - OWT
 - (void)loadAgoraKit {
     // Step 1, set delegate
     /*self.agoraKit.delegate = self;
@@ -278,7 +282,64 @@
     // If join  channel success, agoraKit triggers it's delegate function
     // 'rtcEngine:(AgoraRtcEngineKit *)engine didJoinChannel:(NSString *)channel withUid:(NSUInteger)uid elapsed:(NSInteger)elapsed'
     [self.agoraKit joinChannelByToken:nil channelId:self.settings.roomName info:nil uid:0 joinSuccess:nil];*/
+     if (_conferenceClient == nil){
+        OWTConferenceClientConfiguration* config=[[OWTConferenceClientConfiguration alloc]init];
+        //NSArray *ice=[[NSArray alloc]initWithObjects:[[RTCIceServer alloc]initWithURLStrings:[[NSArray alloc]initWithObjects:@"stun:61.152.239.47:3478", nil]], nil];
+        config.rtcConfiguration=[[RTCConfiguration alloc] init];
+    //    config.rtcConfiguration.iceServers=ice;
+        _conferenceClient=[[OWTConferenceClient alloc]initWithConfiguration:config];
+        _conferenceClient.delegate = self;
+      }
+    
+    if (self.settings.roomName == nil) {
+        NSLog(@"[ZSPDEBUG Function:%s Line:%d] can not read rooms info",__FUNCTION__,__LINE__);
+        return;
+      }
+      NSString * room_id = self.settings.roomName;
+      [self getTokenFromBasicSample:@"https://47.113.89.17:3004/" roomId:room_id onSuccess:^(NSString *token) {
+        NSData *base64_date = [[NSData alloc] initWithBase64EncodedString:token options:NSDataBase64DecodingIgnoreUnknownCharacters];
+        NSString *raw_string =[[NSString alloc] initWithData:base64_date encoding:NSUTF8StringEncoding];
+        NSLog(@"[ZSPDEBUG Function:%s Line:%d] token:%@", __FUNCTION__,__LINE__,raw_string);
+          [self->_conferenceClient joinWithToken:token onSuccess:^(OWTConferenceInfo* info) {
+          dispatch_async(dispatch_get_main_queue(), ^{
+          NSLog(@"[ZSPDEBUG Function:%s Line:%d] RemoteStream Count:%lu", __FUNCTION__,__LINE__, (unsigned long)[info.remoteStreams count]);
+            if([info.remoteStreams count] > 0){
+                self->_conferenceId = info.conferenceId;
+                self->_remoteStreams = [[NSMutableArray alloc] init];
+                for(OWTRemoteStream* s in info.remoteStreams){
+                  [self->_remoteStreams addObject:s];
+                  s.delegate = self;
+                  //s.delegate=appDelegate;
+                //if([s isKindOfClass:[OWTRemoteMixedStream class]]){
+                  //appDelegate.mixedStream=(OWTRemoteMixedStream*)s;
+                //}
+              }
+            }
+          });
+        } onFailure:^(NSError* err) {
+          NSLog(@"Join failed. %@", err);
+        }];
+      } onFailure:^{
+        NSLog(@"Failed to get token from basic server.");
+      }];
     [self setIdleTimerActive:NO];
+}
+
+-(void)getTokenFromBasicSample:(NSString *)basicServer roomId:(NSString *)roomId onSuccess:(void (^)(NSString *))onSuccess onFailure:(void (^)(void))onFailure{
+  AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
+  manager.requestSerializer = [AFJSONRequestSerializer serializer];
+  [manager.requestSerializer setValue:@"*/*" forHTTPHeaderField:@"Accept"];
+  [manager.requestSerializer setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+  manager.responseSerializer = [AFHTTPResponseSerializer serializer];
+  manager.securityPolicy.allowInvalidCertificates=YES;
+  manager.securityPolicy.validatesDomainName=NO;
+  NSDictionary *params = [[NSDictionary alloc]initWithObjectsAndKeys:roomId, @"room", @"user", @"username", @"presenter", @"role", nil];
+  [manager POST:[basicServer stringByAppendingString:@"createToken/"] parameters:params success:^(AFHTTPRequestOperation *operation, id responseObject) {
+    NSData* data=[[NSData alloc]initWithData:responseObject];
+    onSuccess([[NSString alloc]initWithData:data encoding:NSUTF8StringEncoding]);
+  } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+    NSLog(@"Error: %@", error);
+  }];
 }
 
 - (void)addLocalSession {
@@ -547,4 +608,103 @@
     AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
     appDelegate.orientation = UIInterfaceOrientationMaskPortrait;
 }
+
+#pragma mark - OWTConferenceClientDelegate
+-(void)conferenceClient:(OWTConferenceClient *)client didAddStream:(OWTRemoteStream *)stream{
+  NSLog(@"AppDelegate on stream added");
+  stream.delegate=self;
+  if ([stream isKindOfClass:[OWTRemoteMixedStream class]]) {
+    _mixedStream = (OWTRemoteMixedStream *)stream;
+    _mixedStream.delegate = self;
+  }
+  if(stream.source.video == OWTVideoSourceInfoScreenCast){
+    _screenStream = stream;
+  }
+  [self.remoteStreams addObject:stream];
+  //[[NSNotificationCenter defaultCenter] postNotificationName:@"OnStreamAdded" object:self userInfo:[NSDictionary dictionaryWithObject:stream forKey:@"stream"]];
+}
+
+-(void)conferenceClientDidDisconnect:(OWTConferenceClient *)client{
+  NSLog(@"Server disconnected");
+  _mixedStream = nil;
+}
+
+-(void)conferenceClient:(OWTConferenceClient *)client didReceiveMessage:(NSString *)message from:(NSString *)senderId{
+  NSLog(@"AppDelegate received message: %@, from %@", message, senderId);
+}
+
+- (void)conferenceClient:(OWTConferenceClient *)client didAddParticipant:(OWTConferenceParticipant *)user{
+  user.delegate=self;
+  NSLog(@"A new participant joined the meeting.");
+}
+
+#pragma mark - OWTRemoteStreamDelegate
+- (void)streamDidEnd:(nonnull OWTRemoteStream *)stream {
+    
+}
+
+- (void)streamDidMute:(nonnull OWTRemoteStream *)stream trackKind:(OWTTrackKind)kind {
+    
+}
+
+- (void)streamDidUnmute:(nonnull OWTRemoteStream *)stream trackKind:(OWTTrackKind)kind {
+    
+}
+
+- (void)streamDidUpdate:(nonnull OWTRemoteStream *)stream {
+    
+}
+
+- (void)streamDidChangeActiveInput:(nonnull NSString *)activeAudioInputStreamId {
+    
+}
+
+- (void)streamDidChangeVideoLayout:(nonnull OWTRemoteMixedStream *)stream {
+    
+}
+
+- (void)encodeWithCoder:(nonnull NSCoder *)coder {
+    
+}
+
+- (void)traitCollectionDidChange:(nullable UITraitCollection *)previousTraitCollection {
+    
+}
+
+/*- (void)preferredContentSizeDidChangeForChildContentContainer:(nonnull id<UIContentContainer>)container {
+    
+}
+
+- (CGSize)sizeForChildContentContainer:(nonnull id<UIContentContainer>)container withParentContainerSize:(CGSize)parentSize {
+    
+}
+
+- (void)systemLayoutFittingSizeDidChangeForChildContentContainer:(nonnull id<UIContentContainer>)container {
+    
+}
+
+- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(nonnull id<UIViewControllerTransitionCoordinator>)coordinator {
+    
+}
+
+- (void)willTransitionToTraitCollection:(nonnull UITraitCollection *)newCollection withTransitionCoordinator:(nonnull id<UIViewControllerTransitionCoordinator>)coordinator {
+    
+}
+
+- (void)didUpdateFocusInContext:(nonnull UIFocusUpdateContext *)context withAnimationCoordinator:(nonnull UIFocusAnimationCoordinator *)coordinator {
+    
+}
+
+- (void)setNeedsFocusUpdate {
+    
+}
+
+- (BOOL)shouldUpdateFocusInContext:(nonnull UIFocusUpdateContext *)context {
+    
+}
+
+- (void)updateFocusIfNeeded {
+    
+}*/
+
 @end
