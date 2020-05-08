@@ -6,6 +6,7 @@
 //  Copyright © 2016年 Agora. All rights reserved.
 //
 
+#import <AFNetworking/AFNetworking.h>
 #import "MainViewController.h"
 #import "SettingsViewController.h"
 #import "RoomViewController.h"
@@ -28,7 +29,12 @@
 @property (strong, nonatomic) Settings *settings;
 @end
 
-@implementation MainViewController
+@implementation MainViewController {
+    NSArray<NSString*> *_pickerData;
+    NSMutableArray<NSDictionary*> *_roomsData;
+    NSDictionary *_room_info;
+}
+
 #pragma mark - Getter, Setter
 /*- (AgoraRtcEngineKit *)agoraKit {
     if (!_agoraKit) {
@@ -58,6 +64,48 @@
     [super viewDidLoad];
     //[self agoraKit];
     [self updateViews];
+    
+    NSMutableURLRequest *request=[[NSMutableURLRequest alloc]init];
+    [request setURL:[NSURL URLWithString:@"https://www.apple.com"]];
+    NSOperationQueue *queue = [[NSOperationQueue alloc] init];
+    [NSURLConnection sendAsynchronousRequest:request queue:queue completionHandler:^(NSURLResponse *response, NSData *data, NSError *error){
+      // Nothing here.
+    }];
+    
+    //update rooms picker info
+    [self getRoomsFormServer:@"https://47.113.89.17:3004/" onSuccess:^(NSDictionary * roomsdict) {
+      //NSLog(@"[ZSPDEBUG Function:%s Line:%d] rooms:%@", __FUNCTION__,__LINE__,roomsdict);
+      self->_roomsData = [[NSMutableArray alloc] init];
+      for (id key in roomsdict) {
+        //NSLog(@"[ZSPDEBUG Function:%s Line:%d] rooms:%@", __FUNCTION__,__LINE__,key);
+        [self->_roomsData addObject:key];
+      }
+      self->_room_info = [self->_roomsData objectAtIndex:0];
+      NSString *room_id_str = [self->_room_info objectForKey:@"_id"];
+      //NSString *room_name_str = [self->_room_info objectForKey:@"name"];
+      self.roomNameTextField.text = [[NSString alloc] initWithFormat:@"%s",[room_id_str UTF8String]];
+    } onFailure:^{
+      NSLog(@"=================Failed to get Rooms from basic server.");
+    }];
+}
+
+-(void)getRoomsFormServer:(NSString *)basicServer onSuccess:(void (^)(NSDictionary *))onSuccess onFailure:(void (^)())onFailure{
+  AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
+  manager.requestSerializer = [AFJSONRequestSerializer serializer];
+  [manager.requestSerializer setValue:@"*/*" forHTTPHeaderField:@"Accept"];
+  [manager.requestSerializer setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+  manager.responseSerializer = [AFJSONResponseSerializer serializer];
+  NSLog(@"==========getRoomsFormServer=======:%@", basicServer);
+//  manager.responseSerializer.acceptableContentTypes = [NSSet setWithObjects:@"application/json",@"text/json", @"text/plain", @"text/html", nil];
+  manager.securityPolicy.allowInvalidCertificates=YES;
+  manager.securityPolicy.validatesDomainName=NO;
+  NSDictionary *params = [[NSDictionary alloc] init];
+  [manager GET:[basicServer stringByAppendingString:@"rooms/"] parameters:params success:^(AFHTTPRequestOperation *operation, id responseObject) {
+    NSDictionary *resp_data = responseObject;
+    onSuccess([resp_data copy]);
+  } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+    NSLog(@"Error: %@", error);
+  }];
 }
 
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
@@ -121,8 +169,12 @@
     
     self.roomNameTextField.attributedPlaceholder = [[NSAttributedString alloc] initWithString:roomNamePlaceholder
                                                                                    attributes:attributes];
+    
     self.encryptionTextField.attributedPlaceholder = [[NSAttributedString alloc] initWithString:encryptionPlaceholder
                                                                                      attributes:attributes];
+    self.encryptionTextField.hidden = TRUE;
+    self.encryptionButton.hidden = TRUE;
+    self.testNetworkButton.hidden = TRUE;
 }
 
 - (void)enterRoom {

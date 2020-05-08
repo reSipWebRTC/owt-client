@@ -33,7 +33,6 @@
 		A7733D6724079C0A00483870 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 076C59AF1DDDDE6900F813E2 /* VideoToolbox.framework */; };
 		A7733D6824079C0F00483870 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 076C59B51DDDDE7A00F813E2 /* AVFoundation.framework */; };
 		A7733D6924079C1800483870 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 076C59AD1DDDDE6100F813E2 /* CoreMedia.framework */; };
-		A7733D6A24079C2000483870 /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38D619352250BF34004A6C87 /* CoreML.framework */; };
 		A7733D6C24079C2B00483870 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A7733D6B24079C2B00483870 /* CoreMotion.framework */; };
 		A7733D6D24079C3600483870 /* CoreTelephony.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 076C59AB1DDDDE5D00F813E2 /* CoreTelephony.framework */; };
 		A7733D6E24079C3E00483870 /* libc++.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 076C59B31DDDDE7600F813E2 /* libc++.tbd */; };
@@ -148,7 +147,6 @@
 				A7733D7024079C4B00483870 /* SystemConfiguration.framework in Frameworks */,
 				A7733D6624079C0500483870 /* AudioToolbox.framework in Frameworks */,
 				A7733D6824079C0F00483870 /* AVFoundation.framework in Frameworks */,
-				A7733D6A24079C2000483870 /* CoreML.framework in Frameworks */,
 				035E3EBE1C5E07B02516CAF9 /* Pods_OpenVideoCall.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
