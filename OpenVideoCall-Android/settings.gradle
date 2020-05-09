@@ -1,1 +1,10 @@
 include ':app'
+
+include ':sdk'
+include ':sdk:base'
+include ':sdk:p2p'
+include ':sdk:conference'
+project(':sdk').projectDir = new File('sdk')
+project(':sdk:base').projectDir = new File('sdk/base')
+project(':sdk:p2p').projectDir = new File('sdk/p2p')
+project(':sdk:conference').projectDir = new File('sdk/conference')
