@@ -7,6 +7,8 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "VideoView.h"
+
 //#import <AgoraRtcKit/AgoraRtcEngineKit.h>
 
 @interface VideoSession : NSObject

@@ -31,6 +31,10 @@
 
 @property (weak, nonatomic) IBOutlet UITapGestureRecognizer *backgroundDoubleTap;
 
+@property(strong, nonatomic) OWTRemoteStream* remoteStream;
+@property(strong, nonatomic) OWTConferencePublication* publication;
+@property(strong, nonatomic) OWTConferenceSubscription* subscription;
+
 //@property (weak, nonatomic) AgoraRtcEngineKit *agoraKit;
 //@property (strong, nonatomic) AgoraRtcCryptoLoader *agoraLoader;
 //-(void)getTokenFromBasicSample:(NSString *)basicServer onSuccess:(void (^)(NSString *))onSuccess onFailure:(void (^)())onFailure;
@@ -54,7 +58,10 @@
 @property (weak, nonatomic) Settings *settings;
 @end
 
-@implementation RoomViewController
+@implementation RoomViewController {
+    RTCVideoSource* _source;
+    RTCCameraVideoCapturer* _capturer;
+}
 
 #pragma mark - Setter, Getter
 - (void)setIsSwitchCamera:(BOOL)isSwitchCamera {
@@ -302,11 +309,12 @@
         NSLog(@"[ZSPDEBUG Function:%s Line:%d] token:%@", __FUNCTION__,__LINE__,raw_string);
           [self->_conferenceClient joinWithToken:token onSuccess:^(OWTConferenceInfo* info) {
           dispatch_async(dispatch_get_main_queue(), ^{
-          NSLog(@"[ZSPDEBUG Function:%s Line:%d] RemoteStream Count:%lu", __FUNCTION__,__LINE__, (unsigned long)[info.remoteStreams count]);
+          //NSLog(@"[ZSPDEBUG Function:%s Line:%d] RemoteStream Count:%lu", __FUNCTION__,__LINE__, (unsigned long)[info.remoteStreams count]);
             if([info.remoteStreams count] > 0){
                 self->_conferenceId = info.conferenceId;
+                NSLog(@"=======self->_conferenceId=====:%@", self->_conferenceId);
                 self->_remoteStreams = [[NSMutableArray alloc] init];
-                for(OWTRemoteStream* s in info.remoteStreams){
+                for(OWTRemoteStream* s in info.remoteStreams) {
                   [self->_remoteStreams addObject:s];
                   s.delegate = self;
                   //s.delegate=appDelegate;
@@ -315,6 +323,10 @@
                 //}
               }
             }
+            //[self doPublish];
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                [self doPublish];
+              });
           });
         } onFailure:^(NSError* err) {
           NSLog(@"Join failed. %@", err);
@@ -342,13 +354,215 @@
   }];
 }
 
+-(void)doPublish{
+  if (_localStream == nil) {
+#if TARGET_IPHONE_SIMULATOR
+    NSLog(@"Camera is not supported on simulator");
+    OWTStreamConstraints* constraints=[[OWTStreamConstraints alloc]init];
+    constraints.audio=YES;
+    constraints.video=nil;
+#else
+    /* Create LocalStream with constraints */
+    OWTStreamConstraints* constraints=[[OWTStreamConstraints alloc] init];
+    constraints.audio=YES;
+    constraints.video=[[OWTVideoTrackConstraints alloc] init];
+    constraints.video.frameRate=24;
+    constraints.video.resolution=CGSizeMake(640,480);
+    constraints.video.devicePosition=AVCaptureDevicePositionFront;
+#endif
+    RTCMediaStream *localRTCStream = [self createLocalSenderStream:constraints];
+    OWTStreamSourceInfo *sourceinfo = [[OWTStreamSourceInfo alloc] init];
+    sourceinfo.audio = OWTAudioSourceInfoMic;
+    sourceinfo.video = OWTVideoSourceInfoCamera;
+    _localStream=[[OWTLocalStream alloc] initWithMediaStream:localRTCStream source:sourceinfo];
+
+#if TARGET_IPHONE_SIMULATOR
+    NSLog(@"Stream does not have video track.");
+#else
+    dispatch_async(dispatch_get_main_queue(), ^{
+     // [((SFUStreamView *)self.view).localVideoView setCaptureSession:[self->_capturer captureSession] ];
+        [self addLocalSession];
+    });
+#endif
+    OWTPublishOptions* options=[[OWTPublishOptions alloc] init];
+    OWTAudioCodecParameters* opusParameters = [[OWTAudioCodecParameters alloc] init];
+    opusParameters.name=OWTAudioCodecOpus;
+    OWTAudioEncodingParameters *audioParameters = [[OWTAudioEncodingParameters alloc] init];
+    audioParameters.codec = opusParameters;
+    options.audio=[NSArray arrayWithObjects:audioParameters, nil];
+    OWTVideoCodecParameters *h264Parameters = [[OWTVideoCodecParameters alloc] init];
+    h264Parameters.name = OWTVideoCodecH264;
+    OWTVideoEncodingParameters *videoParameters = [[OWTVideoEncodingParameters alloc]init];
+    videoParameters.codec = h264Parameters;
+    options.video = [NSArray arrayWithObjects:videoParameters, nil];
+    [_conferenceClient publish:_localStream withOptions:options onSuccess:^(OWTConferencePublication* p) {
+      NSLog(@"[ZSPDEBUG Function:%s Line:%d] publish success! OWTConferencePublication:%@ id:%@", __FUNCTION__,__LINE__,p,p.publicationId);
+      self->_publication = p;
+      self->_publication.delegate = self;
+      //[self mixToCommonView:p];
+
+    } onFailure:^(NSError* err) {
+      NSLog(@"publish failure!");
+      //[self showMsg:[err localizedFailureReason]];
+    }];
+    //_screenStream = appDelegate.screenStream;
+    //_remoteStream = appDelegate.mixedStream;
+    [self subscribe];
+  }
+}
+
+- (void)subscribe {
+    for (id s in _remoteStreams) {
+     if(![s isKindOfClass:[OWTRemoteMixedStream class]])
+     {
+        [self subscribeForwardStream:s];
+     }
+   }
+}
+
+-(void)subscribeForwardStream:(OWTRemoteStream *)remoteStream{
+  OWTConferenceSubscribeOptions* subOption =
+      [[OWTConferenceSubscribeOptions alloc] init];
+  subOption.video = [[OWTConferenceVideoSubscriptionConstraints alloc]init];
+  OWTVideoCodecParameters* h264Codec = [[OWTVideoCodecParameters alloc] init];
+  h264Codec.name = OWTVideoCodecH264;
+  h264Codec.profile = @"M";
+  subOption.video.codecs = [NSArray arrayWithObjects:h264Codec, nil];
+  subOption.audio = [[OWTConferenceAudioSubscriptionConstraints alloc]init];
+
+  [[AVAudioSession sharedInstance]
+      overrideOutputAudioPort:AVAudioSessionPortOverrideSpeaker
+                        error:nil];
+  
+  //show loading icon
+  dispatch_async(dispatch_get_main_queue(), ^(){
+    //[self->_streamView.act startAnimating];
+  });
+  
+  [_conferenceClient subscribe:remoteStream
+  withOptions:subOption
+  onSuccess:^(OWTConferenceSubscription* subscription) {
+    self->_subscription=subscription;
+    self->_subscription.delegate=self;
+    /*self->_getStatsTimer = [NSTimer timerWithTimeInterval:1.0
+                                            target:self
+                                          selector:@selector(printStats)
+                                          userInfo:nil
+                                           repeats:YES];*/
+//    [[NSRunLoop mainRunLoop] addTimer:_getStatsTimer
+//                              forMode:NSDefaultRunLoopMode];
+    dispatch_async(dispatch_get_main_queue(), ^{
+      NSLog(@"Subscribe stream success.");
+       //UIView<RTCVideoRenderer> *videoView = [[RTCEAGLVideoView alloc]init];
+       //[self->_streamView addRemoteRenderer:remoteStream];
+       VideoSession *userSession = [self videoSessionOfUid:1];
+       [remoteStream attach:((VideoView *)userSession.hostingView).videoView];
+       //userSession.size = size;
+       //[self.agoraKit setupRemoteVideo:userSession.canvas];
+        
+      //hide loading icon
+      //[self->_streamView.act stopAnimating];
+    });
+  }
+  onFailure:^(NSError* err) {
+    NSLog(@"Subscribe stream failed. %@", [err localizedDescription]);
+  }];
+}
+
+static NSString * const kARDAudioTrackId = @"ARDAMSa0";
+static NSString * const kARDVideoTrackId = @"ARDAMSv0";
+
+- (NSString *)createRandomUuid
+{
+  // Create universally unique identifier (object)
+  CFUUIDRef uuidObject = CFUUIDCreate(kCFAllocatorDefault);
+  // Get the string representation of CFUUID object.
+  NSString *uuidStr = (NSString *)CFBridgingRelease(CFUUIDCreateString(kCFAllocatorDefault, uuidObject));
+  CFRelease(uuidObject);
+  return uuidStr;
+}
+
+- (RTCMediaStream*)createLocalSenderStream:(OWTStreamConstraints*)constraints{
+  //init media senders
+  RTCPeerConnectionFactory* factory = [RTCPeerConnectionFactory sharedInstance];
+  RTCMediaStream* stream = [factory mediaStreamWithStreamId:[self createRandomUuid]];
+  
+  //add audio track
+  RTCAudioSource* audio_source = [factory audioSourceWithConstraints:nil];
+  RTCAudioTrack* audio_track =
+      [factory audioTrackWithSource:audio_source trackId:[self createRandomUuid]];
+  [stream addAudioTrack:audio_track];
+  
+  //add video track
+  // Reference: ARDCaptureController.m.
+  RTCVideoSource* video_source = [factory videoSource];
+  RTCCameraVideoCapturer* capturer =
+      [[RTCCameraVideoCapturer alloc] initWithDelegate:video_source];
+  // Configure capturer position.
+  NSArray<AVCaptureDevice*>* captureDevices =
+      [RTCCameraVideoCapturer captureDevices];
+  if (captureDevices == 0) {
+    return nil;
+  }
+  AVCaptureDevice* device = captureDevices[0];
+  if (constraints.video.devicePosition) {
+    for (AVCaptureDevice* d in captureDevices) {
+      if (d.position == constraints.video.devicePosition) {
+        device = d;
+        break;
+      }
+    }
+  }
+  // Configure FPS.
+  NSUInteger fps =
+      constraints.video.frameRate ? constraints.video.frameRate : 24;
+  // Configure resolution.
+  NSArray<AVCaptureDeviceFormat*>* formats =
+      [RTCCameraVideoCapturer supportedFormatsForDevice:device];
+  AVCaptureDeviceFormat* selectedFormat = nil;
+  if (constraints.video.resolution.width == 0 &&
+      constraints.video.resolution.height == 0) {
+    selectedFormat = formats[0];
+  } else {
+    for (AVCaptureDeviceFormat* format in formats) {
+      CMVideoDimensions dimension =
+          CMVideoFormatDescriptionGetDimensions(format.formatDescription);
+      if (dimension.width == constraints.video.resolution.width &&
+          dimension.height == constraints.video.resolution.height) {
+        for (AVFrameRateRange* frameRateRange in
+             [format videoSupportedFrameRateRanges]) {
+          if (frameRateRange.minFrameRate <= fps &&
+              fps <= frameRateRange.maxFrameRate) {
+            selectedFormat = format;
+            break;
+          }
+        }
+      }
+      if(selectedFormat){
+        break;
+      }
+    }
+  }
+  if (selectedFormat == nil) {
+    return nil;
+  }
+  [capturer startCaptureWithDevice:device format:selectedFormat fps:fps];
+  RTCVideoTrack* video_track =
+      [factory videoTrackWithSource:video_source trackId:[self createRandomUuid]];
+  [stream addVideoTrack:video_track];
+  _capturer = capturer;
+  
+  return stream;
+}
+
 - (void)addLocalSession {
-    /*VideoSession *localSession = [VideoSession localSession];
-    [localSession updateMediaInfo:self.settings.dimension fps:self.settings.frameRate];
+    VideoSession *localSession = [VideoSession localSession];
+    //[localSession updateMediaInfo:self.settings.dimension fps:self.settings.frameRate];
     [self.videoSessions addObject:localSession];
-    [self.agoraKit setupLocalVideo:localSession.canvas];
+    [((VideoView *)localSession.hostingView).localVideoView setCaptureSession:[self->_capturer captureSession]];
+    //[self.agoraKit setupLocalVideo:localSession.canvas];
     [self updateInterfaceWithSessions:self.videoSessions targetSize:self.containerView.frame.size animation:YES];
-    [self.agoraKit startPreview];*/
+    //[self.agoraKit startPreview];
 }
 
 - (void)leaveChannel {

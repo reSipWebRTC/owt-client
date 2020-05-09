@@ -7,7 +7,6 @@
 //
 
 #import "VideoSession.h"
-#import "VideoView.h"
 
 @implementation VideoSession
 - (void)setIsVideoMuted:(BOOL)isVideoMuted {

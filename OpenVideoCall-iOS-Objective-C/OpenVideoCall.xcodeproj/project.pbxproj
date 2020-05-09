@@ -588,6 +588,20 @@
 					"$(PROJECT_DIR)/OpenVideoCall",
 					"$(PROJECT_DIR)/OpenVideoCall/deps",
 				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					"\"AFNetworking\"",
+					"-framework",
+					"\"CoreGraphics\"",
+					"-framework",
+					"\"MobileCoreServices\"",
+					"-framework",
+					"\"Security\"",
+					"-framework",
+					"\"SystemConfiguration\"",
+					"-ObjC",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.intel.webrtc.video.conferences;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
@@ -621,6 +635,20 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/OpenVideoCall",
 					"$(PROJECT_DIR)/OpenVideoCall/deps",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					"\"AFNetworking\"",
+					"-framework",
+					"\"CoreGraphics\"",
+					"-framework",
+					"\"MobileCoreServices\"",
+					"-framework",
+					"\"Security\"",
+					"-framework",
+					"\"SystemConfiguration\"",
+					"-ObjC",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.intel.webrtc.video.conferences;
 				PRODUCT_NAME = "$(TARGET_NAME)";

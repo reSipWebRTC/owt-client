@@ -26,6 +26,7 @@
         
         [self addVideoView];
         [self addInfoView];
+        [self addRTCCameraPreviewView];
     }
     
     return self;
@@ -36,7 +37,8 @@
 }
 
 - (void)addVideoView {
-    UIView *videoView = [[UIView alloc] init];
+    UIView<RTCVideoRenderer> * videoView = [[RTCEAGLVideoView alloc]init];
+    //UIView *videoView = [[UIView alloc] init];
     videoView.translatesAutoresizingMaskIntoConstraints = NO;
     videoView.backgroundColor = [UIColor clearColor];
     [self addSubview:videoView];
@@ -47,6 +49,20 @@
     [NSLayoutConstraint activateConstraints:videoViewV];
     
     self.videoView = videoView;
+}
+
+- (void)addRTCCameraPreviewView {
+    RTCCameraPreviewView *localVideoView = [[RTCCameraPreviewView alloc]init];
+    localVideoView.translatesAutoresizingMaskIntoConstraints = NO;
+    localVideoView.backgroundColor = [UIColor clearColor];
+    [self addSubview:localVideoView];
+    
+    NSArray *localvideoViewH = [NSLayoutConstraint constraintsWithVisualFormat:@"H:|[localvideo]|" options:0 metrics:nil views:@{@"localvideo": localVideoView}];
+    NSArray *localvideoViewV = [NSLayoutConstraint constraintsWithVisualFormat:@"V:|[localvideo]|" options:0 metrics:nil views:@{@"localvideo": localVideoView}];
+    [NSLayoutConstraint activateConstraints:localvideoViewH];
+    [NSLayoutConstraint activateConstraints:localvideoViewV];
+    
+    self.localVideoView = localVideoView;
 }
 
 - (void)addInfoView {

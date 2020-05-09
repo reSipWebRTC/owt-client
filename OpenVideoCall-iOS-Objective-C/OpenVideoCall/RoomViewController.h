@@ -19,13 +19,21 @@
 @end
 
 @interface RoomViewController : UIViewController
+<OWTConferencePublicationDelegate, OWTConferenceSubscriptionDelegate>
+
 @property (weak, nonatomic) id<RoomVCDataSource> dataSource;
 
 @property (strong, nonatomic) OWTConferenceClient *conferenceClient;
 @property (strong, nonatomic) OWTRemoteMixedStream* mixedStream;
 @property (strong, nonatomic) OWTRemoteStream* screenStream;
 @property (strong, nonatomic) NSString* conferenceId;
-
 @property (strong, nonatomic) NSMutableArray<OWTRemoteStream*>* remoteStreams;
+
+@property(strong, nonatomic) OWTLocalStream* localStream;
+@property(strong, nonatomic) OWTLocalStream* localStream2;
+
+-(void)doPublish;
+//-(void)mixToCommonView:(OWTConferencePublication*)publication;
+-(void)subscribeForwardStream:(OWTRemoteStream *)remoteStream;
 
 @end
