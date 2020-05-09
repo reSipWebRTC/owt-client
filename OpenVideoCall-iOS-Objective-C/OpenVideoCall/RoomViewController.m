@@ -825,8 +825,8 @@ static NSString * const kARDVideoTrackId = @"ARDAMSv0";
 
 #pragma mark - OWTConferenceClientDelegate
 -(void)conferenceClient:(OWTConferenceClient *)client didAddStream:(OWTRemoteStream *)stream{
-  NSLog(@"AppDelegate on stream added");
-  stream.delegate=self;
+  NSLog(@"====on stream added====%@:%@", stream.streamId, _publication.publicationId);
+  stream.delegate = self;
   if ([stream isKindOfClass:[OWTRemoteMixedStream class]]) {
     _mixedStream = (OWTRemoteMixedStream *)stream;
     _mixedStream.delegate = self;
@@ -835,6 +835,11 @@ static NSString * const kARDVideoTrackId = @"ARDAMSv0";
     _screenStream = stream;
   }
   [self.remoteStreams addObject:stream];
+    
+  if (![stream.streamId isEqualToString:_publication.publicationId]) {
+      [self subscribeForwardStream:stream];
+  }
+    
   //[[NSNotificationCenter defaultCenter] postNotificationName:@"OnStreamAdded" object:self userInfo:[NSDictionary dictionaryWithObject:stream forKey:@"stream"]];
 }
 
