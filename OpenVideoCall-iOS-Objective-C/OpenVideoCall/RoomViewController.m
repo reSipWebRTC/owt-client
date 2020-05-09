@@ -455,7 +455,7 @@
       NSLog(@"Subscribe stream success.");
        //UIView<RTCVideoRenderer> *videoView = [[RTCEAGLVideoView alloc]init];
        //[self->_streamView addRemoteRenderer:remoteStream];
-       VideoSession *userSession = [self videoSessionOfUid:1];
+       VideoSession *userSession = [self videoSessionOfUid:remoteStream.streamId];
        [remoteStream attach:((VideoView *)userSession.hostingView).videoView];
        //userSession.size = size;
        //[self.agoraKit setupRemoteVideo:userSession.canvas];
@@ -758,21 +758,21 @@ static NSString * const kARDVideoTrackId = @"ARDAMSv0";
     [UIApplication sharedApplication].idleTimerDisabled = !active;
 }
 
-- (VideoSession *)fetchSessionOfUid:(NSUInteger)uid {
+- (VideoSession *)fetchSessionOfUid:(NSString*)streamId {
     for (VideoSession *session in self.videoSessions) {
-        if (session.uid == uid) {
+        if (session.streamId == streamId) {
             return session;
         }
     }
     return nil;
 }
 
-- (VideoSession *)videoSessionOfUid:(NSUInteger)uid {
-    VideoSession *fetchedSession = [self fetchSessionOfUid:uid];
+- (VideoSession *)videoSessionOfUid:(NSString*)streamId {
+    VideoSession *fetchedSession = [self fetchSessionOfUid:streamId];
     if (fetchedSession) {
         return fetchedSession;
     } else {
-        VideoSession *newSession = [[VideoSession alloc] initWithUid:uid];
+        VideoSession *newSession = [[VideoSession alloc] initWithUid:streamId];
         [self.videoSessions addObject:newSession];
         [self updateInterfaceWithSessions:self.videoSessions targetSize:self.containerView.frame.size animation:YES];
         return newSession;
@@ -780,8 +780,8 @@ static NSString * const kARDVideoTrackId = @"ARDAMSv0";
 }
 
 - (void)setVideoMuted:(BOOL)muted forUid:(NSUInteger)uid {
-    VideoSession *fetchedSession = [self fetchSessionOfUid:uid];
-    fetchedSession.isVideoMuted = muted;
+    //VideoSession *fetchedSession = [self fetchSessionOfUid:uid];
+    //fetchedSession.isVideoMuted = muted;
 }
 
 - (void)updateSelfViewVisiable {

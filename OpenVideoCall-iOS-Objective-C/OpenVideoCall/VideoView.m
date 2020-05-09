@@ -19,14 +19,24 @@
     self.videoView.hidden = isVideoMuted;
 }
 
+- (instancetype)initWithStreamId:(NSString*)streamId {
+    if (self = [super init]) {
+        self.translatesAutoresizingMaskIntoConstraints = NO;
+        self.backgroundColor = [UIColor whiteColor];
+        if(streamId == nil) {
+            [self addRTCCameraPreviewView];
+        } else {
+            [self addVideoView];
+        }
+        [self addInfoView];
+    }
+    return self;
+}
+
 - (instancetype)initWithFrame:(CGRect)frame {
     if (self = [super initWithFrame:frame]) {
         self.translatesAutoresizingMaskIntoConstraints = NO;
         self.backgroundColor = [UIColor whiteColor];
-        
-        [self addVideoView];
-        [self addInfoView];
-        [self addRTCCameraPreviewView];
     }
     
     return self;

@@ -15,14 +15,14 @@
 }
 
 + (instancetype)localSession {
-    return [[VideoSession alloc] initWithUid:0];
+    return [[VideoSession alloc] initWithUid:nil];
 }
 
-- (instancetype)initWithUid:(NSUInteger)uid {
+- (instancetype)initWithUid:(NSString*)streamId {
     if (self = [super init]) {
-        self.uid = uid;
+        self.streamId = streamId;
         
-        self.hostingView = [[VideoView alloc] init];
+        self.hostingView = [[VideoView alloc] initWithStreamId:streamId];
         self.hostingView.translatesAutoresizingMaskIntoConstraints = NO;
         
         /*self.canvas = [[AgoraRtcVideoCanvas alloc] init];

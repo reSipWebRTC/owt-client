@@ -13,12 +13,13 @@
 
 @interface VideoSession : NSObject
 @property (assign, nonatomic) NSUInteger uid;
+@property (nonatomic, strong) NSString* streamId;
 @property (strong, nonatomic) UIView *hostingView;
 //@property (strong, nonatomic) AgoraRtcVideoCanvas *canvas;
 @property (assign, nonatomic) CGSize size;
 @property (assign, nonatomic) BOOL isVideoMuted;
 
 + (instancetype)localSession;
-- (instancetype)initWithUid:(NSUInteger)uid;
+- (instancetype)initWithUid:(NSString*)streamId;
 - (void)updateMediaInfo:(CGSize)resolution fps:(NSInteger)fps;
 @end

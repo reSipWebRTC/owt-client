@@ -11,6 +11,7 @@
 #import <WebRTC/WebRTC.h>
 
 @interface VideoView : UIView
+- (instancetype)initWithStreamId:(NSString*)streamId;
 @property (assign, nonatomic) BOOL isVideoMuted;
 @property (strong, nonatomic) UIView<RTCVideoRenderer> *videoView;
 @property(strong, nonatomic) RTCCameraPreviewView *localVideoView;
