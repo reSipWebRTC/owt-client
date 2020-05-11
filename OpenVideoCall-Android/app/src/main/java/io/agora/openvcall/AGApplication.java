@@ -12,6 +12,8 @@ import io.agora.openvcall.model.AGEventHandler;
 import io.agora.openvcall.model.CurrentUserSettings;
 import io.agora.openvcall.model.EngineConfig;
 import io.agora.openvcall.model.MyEngineEventHandler;
+import owt.conference.ConferenceClient;
+import owt.conference.ConferenceClientConfiguration;
 //import io.agora.rtc.Constants;
 //import io.agora.rtc.RtcEngine;
 
@@ -20,12 +22,17 @@ public class AGApplication extends Application {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
     //private RtcEngine mRtcEngine;
+    private ConferenceClient conferenceClient;
     private EngineConfig mConfig;
     private MyEngineEventHandler mEventHandler;
 
     //public RtcEngine rtcEngine() {
         //return mRtcEngine;
     //}
+
+    public ConferenceClient conferenceClient() {
+         return conferenceClient;
+    }
 
     public EngineConfig config() {
         return mConfig;
@@ -84,6 +91,14 @@ public class AGApplication extends Application {
         //mRtcEngine.enableAudioVolumeIndication(200, 3, false);
 
         mConfig = new EngineConfig();
+
+        HttpUtils.setUpINSECURESSLContext();
+        ConferenceClientConfiguration configuration
+                = ConferenceClientConfiguration.builder()
+                .setHostnameVerifier(HttpUtils.hostnameVerifier)
+                .setSSLContext(HttpUtils.sslContext)
+                .build();
+        conferenceClient = new ConferenceClient(configuration);
     }
 
     @Override

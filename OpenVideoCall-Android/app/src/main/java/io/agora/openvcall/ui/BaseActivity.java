@@ -3,6 +3,7 @@ package io.agora.openvcall.ui;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.content.res.TypedArray;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -16,13 +17,20 @@ import android.view.*;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Toast;
 import io.agora.openvcall.AGApplication;
+import io.agora.openvcall.HttpUtils;
 import io.agora.openvcall.R;
 import io.agora.openvcall.model.*;
 import io.agora.propeller.Constant;
+import owt.base.ActionCallback;
+import owt.base.OwtError;
+import owt.conference.ConferenceClient;
+import owt.conference.ConferenceInfo;
 //import io.agora.rtc.RtcEngine;
 //import io.agora.rtc.video.VideoCanvas;
 //import io.agora.rtc.video.VideoEncoderConfiguration;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,6 +128,10 @@ public abstract class BaseActivity extends AppCompatActivity {
     /*protected RtcEngine rtcEngine() {
         return application().rtcEngine();
     }*/
+
+    protected ConferenceClient conferenceClient() {
+        return application().conferenceClient();
+    }
 
     protected EngineConfig config() {
         return application().config();
@@ -309,6 +321,37 @@ public abstract class BaseActivity extends AppCompatActivity {
         config().mChannel = channel;
         enablePreProcessor();
         log.debug("joinChannel " + channel + " " + uid);
+
+        String serverUrl = "https://47.113.89.17:3004";
+        String roomId = "";
+
+        JSONObject joinBody = new JSONObject();
+        try {
+            joinBody.put("role", "presenter");
+            joinBody.put("username", "user");
+            joinBody.put("room", roomId.equals("") ? "" : roomId);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        String uri = serverUrl + "/createToken/";
+        String token = HttpUtils.request(uri, "POST", joinBody.toString(), true);
+
+        conferenceClient().join(token, new ActionCallback<ConferenceInfo>() {
+            @Override
+            public void onSuccess(ConferenceInfo conferenceInfo) {
+                System.out.println("===========join==onSuccess==:" +conferenceInfo.toString());
+                //MainActivity.this.conferenceInfo = conferenceInfo;
+                //requestPermission();
+            }
+
+            @Override
+            public void onFailure(OwtError e) {
+                runOnUiThread(() -> {
+
+                });
+            }
+        });
     }
 
     /**

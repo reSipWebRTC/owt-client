@@ -149,6 +149,4 @@ public class MainActivity extends BaseActivity {
     public void permissionGranted() {
 
     }
-
-
 }
