@@ -1,6 +1,0 @@
-framework module Pods_ICSConferenceTests {
-  umbrella header "Pods-ICSConferenceTests-umbrella.h"
-
-  export *
-  module * { export * }
-}
