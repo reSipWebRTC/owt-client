@@ -4,10 +4,6 @@
  */
 package io.agora.openvcall.model;
 
-import static owt.base.CheckCondition.DCHECK;
-import static owt.base.CheckCondition.RCHECK;
-import static owt.base.Const.LOG_TAG;
-
 import android.util.Log;
 
 import org.json.JSONException;
@@ -41,13 +37,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import owt.base.MediaCodecs.AudioCodec;
-import owt.base.MediaCodecs.VideoCodec;
+import static io.agora.openvcall.model.CheckCondition.DCHECK;
+import static io.agora.openvcall.model.CheckCondition.RCHECK;
+
 
 ///@cond
 public abstract class PeerConnectionChannel
         implements PeerConnection.Observer, SdpObserver, DataChannel.Observer {
-
+    public static final String TAG = "PeerConnectionChannel";
     //For P2P, key is peer id, for conference, key is Publication/Subscription id.
     public final String key;
     protected final PeerConnectionChannelObserver observer;
@@ -60,8 +57,8 @@ public abstract class PeerConnectionChannel
     protected PeerConnection.SignalingState signalingState;
     protected PeerConnection.IceConnectionState iceConnectionState;
     protected DataChannel localDataChannel;
-    protected List<VideoCodec> videoCodecs;
-    protected List<AudioCodec> audioCodecs;
+    protected List<MediaCodecs.VideoCodec> videoCodecs;
+    protected List<MediaCodecs.AudioCodec> audioCodecs;
     protected Integer videoMaxBitrate = null, audioMaxBitrate = null;
     protected ArrayList<String> queuedMessage;
     private MediaConstraints sdpConstraints;
@@ -107,7 +104,7 @@ public abstract class PeerConnectionChannel
             if (disposed()) {
                 return;
             }
-            Log.d(LOG_TAG, "create offer");
+            Log.d(TAG, "create offer");
             peerConnection.createOffer(PeerConnectionChannel.this, sdpConstraints);
         });
     }
@@ -118,7 +115,7 @@ public abstract class PeerConnectionChannel
             if (disposed()) {
                 return;
             }
-            Log.d(LOG_TAG, "creating answer");
+            Log.d(TAG, "creating answer");
             peerConnection.createAnswer(PeerConnectionChannel.this, sdpConstraints);
         });
     }
@@ -157,11 +154,11 @@ public abstract class PeerConnectionChannel
                 return;
             }
             if (peerConnection.signalingState() == PeerConnection.SignalingState.STABLE) {
-                Log.d(LOG_TAG, "add ice candidate");
+                Log.d(TAG, "add ice candidate");
                 peerConnection.addIceCandidate(iceCandidate);
             } else {
                 synchronized (remoteIceLock) {
-                    Log.d(LOG_TAG, "queue ice candidate");
+                    Log.d(TAG, "queue ice candidate");
                     queuedRemoteCandidates.add(iceCandidate);
                 }
             }
@@ -177,7 +174,7 @@ public abstract class PeerConnectionChannel
                     if (disposed()) {
                         return;
                     }
-                    Log.d(LOG_TAG, "add ice candidate");
+                    Log.d(TAG, "add ice candidate");
                     peerConnection.addIceCandidate(candidate);
                     queuedRemoteCandidates.remove(candidate);
                 });
@@ -228,7 +225,7 @@ public abstract class PeerConnectionChannel
             if (disposed()) {
                 return;
             }
-            Log.d(LOG_TAG, "remove stream");
+            Log.d(TAG, "remove stream");
             if (audioRtpSenders.get(mediaStreamId) != null) {
                 peerConnection.removeTrack(audioRtpSenders.get(mediaStreamId));
             }
@@ -265,13 +262,13 @@ public abstract class PeerConnectionChannel
     private SessionDescription preferCodecs(SessionDescription sdp, boolean video) {
         LinkedHashSet<String> preferredCodecs = new LinkedHashSet<>();
         if (video) {
-            for (VideoCodec codec : this.videoCodecs) {
+            for (MediaCodecs.VideoCodec codec : this.videoCodecs) {
                 preferredCodecs.add(codec.name);
             }
             preferredCodecs.add("red");
             preferredCodecs.add("ulpfec");
         } else {
-            for (AudioCodec codec : audioCodecs) {
+            for (MediaCodecs.AudioCodec codec : audioCodecs) {
                 preferredCodecs.add(codec.name);
             }
             preferredCodecs.add("CN");
@@ -297,8 +294,8 @@ public abstract class PeerConnectionChannel
             if (line.startsWith("a=rtpmap:")) {
                 String payloadType = line.split(" ")[0].split(":")[1];
                 String codecName = line.split(" ")[1].split("/")[0];
-                boolean typeMismatched = video ? VideoCodec.get(codecName) == VideoCodec.INVALID
-                        : AudioCodec.get(codecName) == AudioCodec.INVALID;
+                boolean typeMismatched = video ? MediaCodecs.VideoCodec.get(codecName) == MediaCodecs.VideoCodec.INVALID
+                        : MediaCodecs.AudioCodec.get(codecName) == MediaCodecs.AudioCodec.INVALID;
                 boolean codecPreferred = preferredCodecs.contains(codecName);
                 boolean rtxPreferred = codecName.equals("rtx")
                         && containsValue(preferredPayloadTypes, lines[i + 1].split("apt=")[1]);
@@ -399,14 +396,14 @@ public abstract class PeerConnectionChannel
         }
         RtpParameters rtpParameters = sender.getParameters();
         if (rtpParameters == null) {
-            Log.e(LOG_TAG, "Null rtp paramters");
+            Log.e(TAG, "Null rtp paramters");
             return;
         }
         for (RtpParameters.Encoding encoding : rtpParameters.encodings) {
             encoding.maxBitrateBps = bitrate == null ? null : bitrate * 1000;
         }
         if (!sender.setParameters(rtpParameters)) {
-            Log.e(LOG_TAG, "Failed to configure max video bitrate");
+            Log.e(TAG, "Failed to configure max video bitrate");
         }
     }
 

@@ -35,6 +35,8 @@ import org.protoojs.droid.WebSocketTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.webrtc.EglBase;
+import org.webrtc.IceCandidate;
+import org.webrtc.SessionDescription;
 import org.webrtc.SurfaceViewRenderer;
 import org.webrtc.VideoFrame;
 import org.webrtc.VideoSink;
@@ -55,7 +57,9 @@ import io.agora.openvcall.model.LocalStream;
 import io.agora.openvcall.model.MediaConstraints;
 import io.agora.openvcall.model.Message;
 import io.agora.openvcall.model.OwtVideoCapturer;
+import io.agora.openvcall.model.PeerConnectionChannel;
 import io.agora.openvcall.model.Protoo;
+import io.agora.openvcall.model.RemoteStream;
 import io.agora.openvcall.model.User;
 import io.agora.openvcall.ui.layout.GridVideoViewContainer;
 import io.agora.openvcall.ui.layout.InChannelMessageListAdapter;
@@ -574,9 +578,6 @@ public class CallActivity extends BaseActivity implements DuringCallEventHandler
         if (mUidsList.size() == 0) {
             return;
         }
-
-        //RtcEngine rtcEngine = rtcEngine();
-        //rtcEngine.muteLocalAudioStream(mAudioMuted = !mAudioMuted);
 
         ImageView iv = (ImageView) view;
 
