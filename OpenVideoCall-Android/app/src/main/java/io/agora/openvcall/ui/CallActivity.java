@@ -106,7 +106,6 @@ public class CallActivity extends BaseActivity implements DuringCallEventHandler
 
     private SmallVideoViewAdapter mSmallVideoViewAdapter;
     private LocalStream localStream;
-    //private RemoteStream stream2Sub;
     private OwtVideoCapturer capturer;
 
     // jobs worker handler.
@@ -1144,4 +1143,7 @@ public class CallActivity extends BaseActivity implements DuringCallEventHandler
         localStream.attach(localProxyRenderer);
     }
 
+    private void publish(LocalStream localStream) {
+        localStream.publish(localStream);
+    }
 }
