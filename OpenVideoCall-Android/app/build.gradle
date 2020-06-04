@@ -56,7 +56,14 @@ dependencies {
     androidTestImplementation 'com.android.support.test:rules:1.0.2'
     androidTestImplementation 'com.jayway.android.robotium:robotium-solo:5.6.3'
 
-    implementation project(':sdk:base')
-    implementation project(':sdk:conference')
-    api files('../dependencies/libwebrtc/libwebrtc.jar')
+    implementation 'com.squareup.okhttp3:okhttp:4.3.0'
+    implementation("com.squareup.okhttp3:logging-interceptor:4.3.0")
+    implementation 'io.reactivex.rxjava2:rxandroid:2.1.1'
+    implementation 'io.reactivex.rxjava2:rxjava:2.2.6'
+
+    api 'org.webrtc:google-webrtc:1.0.+'
+
+    //implementation project(':sdk:base')
+    //implementation project(':sdk:conference')
+    //api files('../dependencies/libwebrtc/libwebrtc.jar')
 }

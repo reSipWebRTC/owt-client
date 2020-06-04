@@ -21,10 +21,8 @@ import io.agora.openvcall.HttpUtils;
 import io.agora.openvcall.R;
 import io.agora.openvcall.model.*;
 import io.agora.propeller.Constant;
-import owt.base.ActionCallback;
-import owt.base.OwtError;
-import owt.conference.ConferenceClient;
-import owt.conference.ConferenceInfo;
+//import owt.conference.ConferenceClient;
+//import owt.conference.ConferenceInfo;
 //import io.agora.rtc.RtcEngine;
 //import io.agora.rtc.video.VideoCanvas;
 //import io.agora.rtc.video.VideoEncoderConfiguration;
@@ -129,9 +127,9 @@ public abstract class BaseActivity extends AppCompatActivity {
         return application().rtcEngine();
     }*/
 
-    protected ConferenceClient conferenceClient() {
-        return application().conferenceClient();
-    }
+   // protected ConferenceClient conferenceClient() {
+        //return application().conferenceClient();
+    //}
 
     protected EngineConfig config() {
         return application().config();
@@ -337,7 +335,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         String uri = serverUrl + "/createToken/";
         String token = HttpUtils.request(uri, "POST", joinBody.toString(), true);
 
-        conferenceClient().join(token, new ActionCallback<ConferenceInfo>() {
+        /*conferenceClient().join(token, new ActionCallback<ConferenceInfo>() {
             @Override
             public void onSuccess(ConferenceInfo conferenceInfo) {
                 System.out.println("===========join==onSuccess==:" +conferenceInfo.toString());
@@ -351,7 +349,7 @@ public abstract class BaseActivity extends AppCompatActivity {
 
                 });
             }
-        });
+        });*/
     }
 
     /**

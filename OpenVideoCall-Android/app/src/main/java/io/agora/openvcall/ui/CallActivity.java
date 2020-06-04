@@ -7,10 +7,16 @@ import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
+import android.support.annotation.WorkerThread;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -24,18 +30,32 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import org.json.JSONObject;
+import org.protoojs.droid.WebSocketTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.webrtc.EglBase;
+import org.webrtc.SurfaceViewRenderer;
+import org.webrtc.VideoFrame;
+import org.webrtc.VideoSink;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Locale;
+import java.util.UUID;
 
 import io.agora.openvcall.R;
 import io.agora.openvcall.model.AGEventHandler;
 import io.agora.openvcall.model.ConstantApp;
+import io.agora.openvcall.model.ContextInitialization;
 import io.agora.openvcall.model.DuringCallEventHandler;
+import io.agora.openvcall.model.JsonUtils;
+import io.agora.openvcall.model.LocalStream;
+import io.agora.openvcall.model.MediaConstraints;
 import io.agora.openvcall.model.Message;
+import io.agora.openvcall.model.OwtVideoCapturer;
+import io.agora.openvcall.model.Protoo;
 import io.agora.openvcall.model.User;
 import io.agora.openvcall.ui.layout.GridVideoViewContainer;
 import io.agora.openvcall.ui.layout.InChannelMessageListAdapter;
@@ -47,24 +67,29 @@ import io.agora.propeller.UserStatusData;
 import io.agora.propeller.VideoInfoData;
 import io.agora.propeller.ui.RecyclerItemClickListener;
 import io.agora.propeller.ui.RtlLinearLayoutManager;
-//import io.agora.rtc.Constants;
-//import io.agora.rtc.IRtcEngineEventHandler;
-//import io.agora.rtc.RtcEngine;
-//import io.agora.rtc.video.VideoCanvas;
-//import io.agora.rtc.video.VideoEncoderConfiguration;
+
+import static io.agora.openvcall.model.JsonUtils.jsonPut;
 
 public class CallActivity extends BaseActivity implements DuringCallEventHandler {
-
+    private static final String HOSTNAME = "47.113.89.17";
+    //  private static final String HOSTNAME = "192.168.1.103";
+    private static final int PORT = 8443;
     public static final int LAYOUT_TYPE_DEFAULT = 0;
     public static final int LAYOUT_TYPE_SMALL = 1;
+    //UUDI
+    private UUID mUuid = UUID.randomUUID();
+
+    private volatile boolean mClosed;
 
     private final static Logger log = LoggerFactory.getLogger(CallActivity.class);
+    private static final String TAG = "CallActivity";
 
     // should only be modified under UI thread
     private final HashMap<Integer, SurfaceView> mUidsList = new HashMap<>(); // uid = 0 || uid == EngineConfig.mUid
     public int mLayoutType = LAYOUT_TYPE_DEFAULT;
     private GridVideoViewContainer mGridVideoViewContainer;
     private RelativeLayout mSmallVideoViewDock;
+    private SurfaceViewRenderer localRenderer, remoteRenderer;
 
     private volatile boolean mVideoMuted = false;
     private volatile boolean mAudioMuted = false;
@@ -80,8 +105,39 @@ public class CallActivity extends BaseActivity implements DuringCallEventHandler
     private ArrayList<Message> mMsgList;
 
     private SmallVideoViewAdapter mSmallVideoViewAdapter;
+    private LocalStream localStream;
+    //private RemoteStream stream2Sub;
+    private OwtVideoCapturer capturer;
+
+    // jobs worker handler.
+    private Handler mWorkHandler;
+    // main looper handler.
+    private Handler mMainHandler;
+    // mProtoo-client Protoo instance.
+    private Protoo mProtoo;
+    EglBase rootEglBase;
+    private static boolean contextHasInitialized = false;
 
     private final Handler mUIHandler = new Handler();
+    private final ProxyVideoSink localProxyRenderer = new ProxyVideoSink();
+
+    private static class ProxyVideoSink implements VideoSink {
+        private VideoSink target;
+
+        @Override
+        synchronized public void onFrame(VideoFrame frame) {
+            if (target == null) {
+                //Logging.d(TAG, "Dropping frame in proxy because target is null.");
+                return;
+            }
+
+            target.onFrame(frame);
+        }
+
+        synchronized public void setTarget(VideoSink target) {
+            this.target = target;
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -154,19 +210,46 @@ public class CallActivity extends BaseActivity implements DuringCallEventHandler
             }
         });
 
-        SurfaceView surfaceV = null;//RtcEngine.CreateRendererView(getApplicationContext());
-        preview(true, surfaceV, 0);
-        surfaceV.setZOrderOnTop(false);
-        surfaceV.setZOrderMediaOverlay(false);
+        rootEglBase = EglBase.create();
+        if (!contextHasInitialized) {
+            ContextInitialization.create()
+                    .setApplicationContext(this)
+                    .setVideoHardwareAccelerationOptions(
+                            rootEglBase.getEglBaseContext(),
+                            rootEglBase.getEglBaseContext())
+                    .initialize();
+            contextHasInitialized = true;
+        }
 
-        mUidsList.put(0, surfaceV); // get first surface view
+        localRenderer = new SurfaceViewRenderer(this);
+        localRenderer.init(rootEglBase.getEglBaseContext(), null);
+        SurfaceView surfaceV = localRenderer;//RtcEngine.CreateRendererView(getApplicationContext());
+        //preview(true, surfaceV, 0);
+        localRenderer.setZOrderOnTop(false);
+        localRenderer.setZOrderMediaOverlay(true);
+        localProxyRenderer.setTarget(localRenderer);
+
+        mUidsList.put(0, localRenderer); // get first surface view
 
         mGridVideoViewContainer.initViewContainer(this, 0, mUidsList, mIsLandscape); // first is now full view
 
         initMessageList();
         notifyMessageChanged(new Message(new User(0, null), "start join " + channelName + " as " + (config().mUid & 0xFFFFFFFFL)));
 
-        joinChannel(channelName, config().mUid);
+        //joinChannel(channelName, config().mUid);
+        // init worker handler.
+        HandlerThread handlerThread = new HandlerThread("worker");
+        handlerThread.start();
+        mWorkHandler = new Handler(handlerThread.getLooper());
+        mMainHandler = new Handler(Looper.getMainLooper());
+        String url =
+                String.format(
+                        Locale.US, "wss://%s:%d/ws?peer=", HOSTNAME, PORT, "111234");
+        mWorkHandler.post(
+                () -> {
+                    WebSocketTransport transport = new WebSocketTransport(url);
+                    mProtoo = new Protoo(transport, peerListener);
+                });
 
         optional();
     }
@@ -898,4 +981,167 @@ public class CallActivity extends BaseActivity implements DuringCallEventHandler
             switchToSmallVideoView(mSmallVideoViewAdapter.getExceptedUid());
         }
     }
+
+    private Protoo.Listener peerListener =
+            new Protoo.Listener() {
+                @Override
+                public void onOpen() {
+                    mWorkHandler.post(() -> joinImpl());
+                }
+
+                @Override
+                public void onFail() {
+                    mWorkHandler.post(
+                            () -> {
+                                Log.e(TAG, "===========Protoo.Listener=====onFail======");
+                                //mStore.addNotify("error", "WebSocket connection failed");
+                                //mStore.setRoomState(ConnectionState.CONNECTING);
+                            });
+                }
+
+                @Override
+                public void onRequest(
+                        @NonNull org.protoojs.droid.Message.Request request, @NonNull Protoo.ServerRequestHandler handler) {
+                    Log.d(TAG, "onRequest() " + request.getData().toString());
+                    mWorkHandler.post(
+                            () -> {
+                                try {
+                                    switch (request.getMethod()) {
+                                        case "newConsumer":
+                                        {
+                                            //onNewConsumer(request, handler);
+                                            break;
+                                        }
+                                        case "newDataConsumer":
+                                        {
+                                            //onNewDataConsumer(request, handler);
+                                            break;
+                                        }
+                                        default:
+                                        {
+                                            handler.reject(403, "unknown protoo request.method " + request.getMethod());
+                                            //Logger.w(TAG, "unknown protoo request.method " + request.getMethod());
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    //Logger.e(TAG, "handleRequestError.", e);
+                                }
+                            });
+                }
+
+                @Override
+                public void onNotification(@NonNull org.protoojs.droid.Message.Notification notification) {
+                    Log.e(
+                            TAG,
+                            "onNotification() "
+                                    + notification.getMethod()
+                                    + ", "
+                                    + notification.getData().toString());
+                    mWorkHandler.post(
+                            () -> {
+                                try {
+                                    //handleNotification(notification);
+                                } catch (Exception e) {
+                                    Log.e(TAG, "handleNotification error.", e);
+                                }
+                            });
+                }
+
+                @Override
+                public void onDisconnected() {
+                    mWorkHandler.post(
+                            () -> {
+                                //mStore.addNotify("error", "WebSocket disconnected");
+                                //mStore.setRoomState(ConnectionState.CONNECTING);
+
+                                // Close All Transports created by device.
+                                // All will reCreated After ReJoin.
+                                //disposeTransportDevice();
+                            });
+                }
+
+                @Override
+                public void onClose() {
+                    if (mClosed) {
+                        return;
+                    }
+                    mWorkHandler.post(
+                            () -> {
+                                if (mClosed) {
+                                    return;
+                                }
+                                //close();
+                            });
+                }
+            };
+
+    @WorkerThread
+    private void joinImpl() {
+        Log.d(TAG, "joinImpl()");
+
+        try {
+            // Join now into the room.
+            // TODO(HaiyangWu): Don't send our RTP capabilities if we don't want to consume.
+            String joinResponse =
+                    mProtoo.syncRequest(
+                            "join",
+                            req -> {
+                                jsonPut(req, "rid", "1111");
+                                jsonPut(req, "uid", mUuid);
+                                jsonPut(req, "displayName", "5555");
+                            });
+
+            //mStore.setRoomState(ConnectionState.CONNECTED);
+            //mStore.addNotify("You are in the room!", 3000);
+
+            JSONObject resObj = JsonUtils.toJsonObject(joinResponse);
+            /*JSONArray peers = resObj.optJSONArray("peers");
+            for (int i = 0; peers != null && i < peers.length(); i++) {
+                JSONObject peer = peers.getJSONObject(i);
+                //mStore.addPeer(peer.optString("id"), peer);
+            }*/
+
+            //publish(localStream);
+            Log.e("RoomClient", "===========join=room======success====");
+
+            // Enable mic/webcam.
+            //if (mOptions.isProduce()) {
+            //boolean canSendMic = mMediasoupDevice.canProduce("audio");
+            //boolean canSendCam = mMediasoupDevice.canProduce("video");
+            //mStore.setMediaCapabilities(canSendMic, canSendCam);
+            //mMainHandler.post(this::enableMic);
+            mMainHandler.post(this::enableCam);
+            //}
+        } catch (Exception e) {
+            e.printStackTrace();
+            //logError("joinRoom() failed:", e);
+            if (TextUtils.isEmpty(e.getMessage())) {
+               // mStore.addNotify("error", "Could not join the room, internal error");
+            } else {
+                //mStore.addNotify("error", "Could not join the room: " + e.getMessage());
+            }
+            //mMainHandler.post(this::close);
+        }
+    }
+
+    public void enableCam() {
+        Log.d(TAG, "enableCam()");
+        //mStore.setCamInProgress(true);
+        mWorkHandler.post(
+                () -> {
+                    enableCamImpl();
+                    //mStore.setCamInProgress(false);
+                });
+    }
+
+
+    @WorkerThread
+    private void enableCamImpl() {
+        Log.d(TAG, "enableCamImpl()");
+
+        capturer = OwtVideoCapturer.create(640, 480, 15, true);
+        localStream = new LocalStream(capturer, new MediaConstraints.AudioTrackConstraints());
+        localStream.attach(localProxyRenderer);
+    }
+
 }
