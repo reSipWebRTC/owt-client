@@ -21,10 +21,10 @@
 		076C59A61DDDBF3100F813E2 /* VideoViewLayouter.m in Sources */ = {isa = PBXBuildFile; fileRef = 076C59A41DDDBF3100F813E2 /* VideoViewLayouter.m */; };
 		076C59A91DDDC9FD00F813E2 /* VideoView.m in Sources */ = {isa = PBXBuildFile; fileRef = 076C59A81DDDC9FD00F813E2 /* VideoView.m */; };
 		3832FA5F227FC9DA00E50E69 /* FileCenter.m in Sources */ = {isa = PBXBuildFile; fileRef = 3832FA5E227FC9DA00E50E69 /* FileCenter.m */; };
-		63A16FC024640EF50035A6CD /* WebRTC.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63A16FB8246408C00035A6CD /* WebRTC.framework */; };
-		63A16FC124640EF50035A6CD /* WebRTC.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 63A16FB8246408C00035A6CD /* WebRTC.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		63A16FC324640F250035A6CD /* libsioclient_tls.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 63A16FBF246409740035A6CD /* libsioclient_tls.a */; };
-		63A16FC62464174A0035A6CD /* OWT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63A16FBC246408CE0035A6CD /* OWT.framework */; };
+		63017BB4247E022A0007F688 /* OWT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63017BB2247E02290007F688 /* OWT.framework */; };
+		63017BB6247E022A0007F688 /* WebRTC.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63017BB3247E022A0007F688 /* WebRTC.framework */; };
+		63017BB7247E022A0007F688 /* WebRTC.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 63017BB3247E022A0007F688 /* WebRTC.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		63017BBA247E028E0007F688 /* libsioclient_tls.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 63017BB9247E023F0007F688 /* libsioclient_tls.a */; };
 		A7327ECE1FC7B5E300882882 /* Encryption.m in Sources */ = {isa = PBXBuildFile; fileRef = A7327ECD1FC7B5E300882882 /* Encryption.m */; };
 		A7327ED41FC7C7DB00882882 /* MessageCell.m in Sources */ = {isa = PBXBuildFile; fileRef = A7327ED31FC7C7DB00882882 /* MessageCell.m */; };
 		A7327ED71FC7C7EE00882882 /* Message.m in Sources */ = {isa = PBXBuildFile; fileRef = A7327ED61FC7C7EE00882882 /* Message.m */; };
@@ -49,13 +49,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		63A16FC224640EF50035A6CD /* Embed Frameworks */ = {
+		63017BB8247E022A0007F688 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				63A16FC124640EF50035A6CD /* WebRTC.framework in Embed Frameworks */,
+				63017BB7247E022A0007F688 /* WebRTC.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -101,6 +101,9 @@
 		385F305A2122CB13005D5301 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		38D619352250BF34004A6C87 /* CoreML.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreML.framework; path = System/Library/Frameworks/CoreML.framework; sourceTree = SDKROOT; };
 		4235F29C133381C2FA01F9B5 /* Pods-OpenVideoCall.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OpenVideoCall.release.xcconfig"; path = "Target Support Files/Pods-OpenVideoCall/Pods-OpenVideoCall.release.xcconfig"; sourceTree = "<group>"; };
+		63017BB2247E02290007F688 /* OWT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OWT.framework; path = deps/OWT.framework; sourceTree = "<group>"; };
+		63017BB3247E022A0007F688 /* WebRTC.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebRTC.framework; path = deps/WebRTC.framework; sourceTree = "<group>"; };
+		63017BB9247E023F0007F688 /* libsioclient_tls.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libsioclient_tls.a; path = deps/libsioclient_tls.a; sourceTree = "<group>"; };
 		63A16FB8246408C00035A6CD /* WebRTC.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebRTC.framework; path = OpenVideoCall/WebRTC.framework; sourceTree = "<group>"; };
 		63A16FBC246408CE0035A6CD /* OWT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OWT.framework; path = OpenVideoCall/OWT.framework; sourceTree = "<group>"; };
 		63A16FBF246409740035A6CD /* libsioclient_tls.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libsioclient_tls.a; path = OpenVideoCall/deps/libsioclient_tls.a; sourceTree = "<group>"; };
@@ -134,17 +137,17 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				63A16FC62464174A0035A6CD /* OWT.framework in Frameworks */,
 				A7733D6924079C1800483870 /* CoreMedia.framework in Frameworks */,
 				A7733D6524079BFF00483870 /* Accelerate.framework in Frameworks */,
 				A7733D6D24079C3600483870 /* CoreTelephony.framework in Frameworks */,
-				63A16FC324640F250035A6CD /* libsioclient_tls.a in Frameworks */,
+				63017BB6247E022A0007F688 /* WebRTC.framework in Frameworks */,
+				63017BB4247E022A0007F688 /* OWT.framework in Frameworks */,
 				A7733D6C24079C2B00483870 /* CoreMotion.framework in Frameworks */,
 				A7733D6F24079C4500483870 /* libresolv.tbd in Frameworks */,
 				A7733D6724079C0A00483870 /* VideoToolbox.framework in Frameworks */,
 				A7733D6E24079C3E00483870 /* libc++.tbd in Frameworks */,
-				63A16FC024640EF50035A6CD /* WebRTC.framework in Frameworks */,
 				A7733D7024079C4B00483870 /* SystemConfiguration.framework in Frameworks */,
+				63017BBA247E028E0007F688 /* libsioclient_tls.a in Frameworks */,
 				A7733D6624079C0500483870 /* AudioToolbox.framework in Frameworks */,
 				A7733D6824079C0F00483870 /* AVFoundation.framework in Frameworks */,
 				035E3EBE1C5E07B02516CAF9 /* Pods_OpenVideoCall.framework in Frameworks */,
@@ -260,6 +263,9 @@
 		076C59AA1DDDDE5C00F813E2 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				63017BB9247E023F0007F688 /* libsioclient_tls.a */,
+				63017BB2247E02290007F688 /* OWT.framework */,
+				63017BB3247E022A0007F688 /* WebRTC.framework */,
 				63A16FBF246409740035A6CD /* libsioclient_tls.a */,
 				63A16FBC246408CE0035A6CD /* OWT.framework */,
 				63A16FB8246408C00035A6CD /* WebRTC.framework */,
@@ -299,8 +305,8 @@
 				076C596E1DDDBC3500F813E2 /* Sources */,
 				076C596F1DDDBC3500F813E2 /* Frameworks */,
 				076C59701DDDBC3500F813E2 /* Resources */,
-				63A16FC224640EF50035A6CD /* Embed Frameworks */,
 				4BC2BC11828EA52FFFECA9F1 /* [CP] Embed Pods Frameworks */,
+				63017BB8247E022A0007F688 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -574,6 +580,7 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/OpenVideoCall",
+					"$(PROJECT_DIR)/deps",
 				);
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -587,6 +594,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/OpenVideoCall",
 					"$(PROJECT_DIR)/OpenVideoCall/deps",
+					"$(PROJECT_DIR)/deps",
 				);
 				OTHER_LDFLAGS = (
 					"$(inherited)",
@@ -622,6 +630,7 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/OpenVideoCall",
+					"$(PROJECT_DIR)/deps",
 				);
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -635,6 +644,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/OpenVideoCall",
 					"$(PROJECT_DIR)/OpenVideoCall/deps",
+					"$(PROJECT_DIR)/deps",
 				);
 				OTHER_LDFLAGS = (
 					"$(inherited)",
